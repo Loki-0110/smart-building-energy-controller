@@ -1,0 +1,48 @@
+
+name: Python CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/data-pipeline
+    paths:
+      - 'data-processing/**'
+      - '.github/workflows/python-ci.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'data-processing/**'
+      - '.github/workflows/python-ci.yml'
+
+jobs:
+  build:
+    name: Validate Python Data Pipeline
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: data-processing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: data-processing/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: |
+          python -m compileall -q main.py config services simulator validation
+
