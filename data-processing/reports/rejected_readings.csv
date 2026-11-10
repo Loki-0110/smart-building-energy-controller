@@ -1,5 +1,0 @@
-building_id,reading_timestamp,demand_kw,source_name,validation_reason,parsed_timestamp,data_quality_status
-1,2026-11-10T18:49:55,-10.0,PYTHON_SIMULATOR,Demand outside allowed range; ,2026-11-10 18:49:55,INVALID
-1,2026-11-10T18:51:55,,PYTHON_SIMULATOR,Missing value; ,2026-11-10 18:51:55,INVALID
-1,2026-11-10T18:52:55,199.52,PYTHON_SIMULATOR,Duplicate timestamp; ,2026-11-10 18:52:55,INVALID
-1,invalid-timestamp,172.8,PYTHON_SIMULATOR,Invalid timestamp; ,,INVALID
