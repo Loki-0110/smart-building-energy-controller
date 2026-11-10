@@ -17,8 +17,8 @@ public class MeterReading {
     @Column(name="BUILDING_ID")
     private Long buildingId;
     @NotNull
-    @Column(name="READING_TIMESTAMP")
-    private java.time.LocalDateTime readingTimestamp;
+    @Column(name = "READING_TIMESTAMP")
+    private LocalDateTime readingTimestamp;
     @NotNull
     @DecimalMin("0.0")
     @Column(name="DEMAND_KW", precision=12, scale=2)

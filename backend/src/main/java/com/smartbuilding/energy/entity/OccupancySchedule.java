@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 
-@Entity @Table(name="OCCUPANCY_SCHEDULE")
+    @Entity @Table(name="OCCUPANCY_SCHEDULE")
 public class OccupancySchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

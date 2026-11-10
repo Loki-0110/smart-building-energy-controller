@@ -1,49 +1,60 @@
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+
+from config.settings import (
+    BUILDING_ID,
+    SOURCE_NAME,
+    NUMBER_OF_READINGS,
+    READING_INTERVAL_MINUTES
+)
+
+IST = ZoneInfo("Asia/Kolkata")
 
 
-def generate_meter_readings(count=15):
+def generate_readings():
 
-    np.random.seed(42)
+    # Generate timestamps using Indian Standard Time.
+    now = datetime.now(IST).replace(tzinfo=None, microsecond=0)
 
-    current_time = datetime.now().replace(
-        second=0,
-        microsecond=0
-    )
+    timestamps = [
+        now - timedelta(
+            minutes=READING_INTERVAL_MINUTES * (NUMBER_OF_READINGS - i - 1)
+        )
+        for i in range(NUMBER_OF_READINGS)
+    ]
 
-    # Generate normal electricity demand values
-    demand_values = np.random.uniform(150, 200, count)
+    # Debug timestamp generation.
+    print("\n========== TIMESTAMP DEBUG ==========")
+    print("Current Python IST:", datetime.now(IST))
+    print("First generated timestamp:", timestamps[0])
+    print("Last generated timestamp:", timestamps[-1])
+    print("=====================================\n")
+
+    # Generate random electricity demand values.
+    demands = np.random.uniform(
+        150, 200, NUMBER_OF_READINGS
+    ).round(2)
 
     readings = []
 
-    for i in range(count):
-
+    for timestamp, demand in zip(timestamps, demands):
         readings.append({
-            "readingTimestamp": (
-                current_time + timedelta(minutes=i)
-            ).strftime("%Y-%m-%dT%H:%M:%S"),
-
-            "demandKw": round(float(demand_values[i]), 2)
+            "building_id": BUILDING_ID,
+            "reading_timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "demand_kw": float(demand),
+            "source_name": SOURCE_NAME
         })
 
-    # Convert generated records into a DataFrame
-    df = pd.DataFrame(readings)
+    # Test data-quality validation rules.
+    readings[2]["demand_kw"] = -10
+    readings[4]["demand_kw"] = None
+    readings[6]["reading_timestamp"] = readings[5]["reading_timestamp"]
+    readings[7]["reading_timestamp"] = "invalid-timestamp"
 
-    # Introduce invalid records for testing
-    if count >= 8:
+    print(f"Generated {len(readings)} meter readings.")
 
-        # Invalid negative demand
-        df.loc[2, "demandKw"] = -10
-
-        # Missing demand
-        df.loc[4, "demandKw"] = np.nan
-
-        # Duplicate timestamp
-        df.loc[6, "readingTimestamp"] = df.loc[5, "readingTimestamp"]
-
-        # Invalid timestamp
-        df.loc[7, "readingTimestamp"] = "INVALID_TIMESTAMP"
-
-    return df
+    return pd.DataFrame(readings)

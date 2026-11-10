@@ -1,15 +1,5 @@
-readingTimestamp,demandKw,validationReason,parsedTimestamp,dataQualityStatus
-2026-11-10T13:36:00,197.54,Future timestamp; ,2026-11-10 13:36:00,INVALID
-2026-11-10T13:37:00,-10.0,Demand outside allowed range; Future timestamp; ,2026-11-10 13:37:00,INVALID
-2026-11-10T13:38:00,179.93,Future timestamp; ,2026-11-10 13:38:00,INVALID
-2026-11-10T13:39:00,,Missing value; Future timestamp; ,2026-11-10 13:39:00,INVALID
-2026-11-10T13:40:00,157.8,Future timestamp; ,2026-11-10 13:40:00,INVALID
-2026-11-10T13:40:00,152.9,Future timestamp; Duplicate timestamp; ,2026-11-10 13:40:00,INVALID
-INVALID_TIMESTAMP,193.31,Invalid timestamp; ,,INVALID
-2026-11-10T13:43:00,180.06,Future timestamp; ,2026-11-10 13:43:00,INVALID
-2026-11-10T13:44:00,185.4,Future timestamp; ,2026-11-10 13:44:00,INVALID
-2026-11-10T13:45:00,151.03,Future timestamp; ,2026-11-10 13:45:00,INVALID
-2026-11-10T13:46:00,198.5,Future timestamp; ,2026-11-10 13:46:00,INVALID
-2026-11-10T13:47:00,191.62,Future timestamp; ,2026-11-10 13:47:00,INVALID
-2026-11-10T13:48:00,160.62,Future timestamp; ,2026-11-10 13:48:00,INVALID
-2026-11-10T13:49:00,159.09,Future timestamp; ,2026-11-10 13:49:00,INVALID
+building_id,reading_timestamp,demand_kw,source_name,validation_reason,parsed_timestamp,data_quality_status
+1,2026-11-10T18:26:29,-10.0,PYTHON_SIMULATOR,Demand outside allowed range; ,2026-11-10 18:26:29,INVALID
+1,2026-11-10T18:28:29,,PYTHON_SIMULATOR,Missing value; ,2026-11-10 18:28:29,INVALID
+1,2026-11-10T18:29:29,157.53,PYTHON_SIMULATOR,Duplicate timestamp; ,2026-11-10 18:29:29,INVALID
+1,invalid-timestamp,176.3,PYTHON_SIMULATOR,Invalid timestamp; ,,INVALID
