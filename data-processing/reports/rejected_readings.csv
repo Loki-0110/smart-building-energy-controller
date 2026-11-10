@@ -1,0 +1,15 @@
+readingTimestamp,demandKw,validationReason,parsedTimestamp,dataQualityStatus
+2026-11-10T13:36:00,197.54,Future timestamp; ,2026-11-10 13:36:00,INVALID
+2026-11-10T13:37:00,-10.0,Demand outside allowed range; Future timestamp; ,2026-11-10 13:37:00,INVALID
+2026-11-10T13:38:00,179.93,Future timestamp; ,2026-11-10 13:38:00,INVALID
+2026-11-10T13:39:00,,Missing value; Future timestamp; ,2026-11-10 13:39:00,INVALID
+2026-11-10T13:40:00,157.8,Future timestamp; ,2026-11-10 13:40:00,INVALID
+2026-11-10T13:40:00,152.9,Future timestamp; Duplicate timestamp; ,2026-11-10 13:40:00,INVALID
+INVALID_TIMESTAMP,193.31,Invalid timestamp; ,,INVALID
+2026-11-10T13:43:00,180.06,Future timestamp; ,2026-11-10 13:43:00,INVALID
+2026-11-10T13:44:00,185.4,Future timestamp; ,2026-11-10 13:44:00,INVALID
+2026-11-10T13:45:00,151.03,Future timestamp; ,2026-11-10 13:45:00,INVALID
+2026-11-10T13:46:00,198.5,Future timestamp; ,2026-11-10 13:46:00,INVALID
+2026-11-10T13:47:00,191.62,Future timestamp; ,2026-11-10 13:47:00,INVALID
+2026-11-10T13:48:00,160.62,Future timestamp; ,2026-11-10 13:48:00,INVALID
+2026-11-10T13:49:00,159.09,Future timestamp; ,2026-11-10 13:49:00,INVALID
