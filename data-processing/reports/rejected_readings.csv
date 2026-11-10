@@ -1,5 +1,5 @@
 building_id,reading_timestamp,demand_kw,source_name,validation_reason,parsed_timestamp,data_quality_status
-1,2026-11-10T18:26:29,-10.0,PYTHON_SIMULATOR,Demand outside allowed range; ,2026-11-10 18:26:29,INVALID
-1,2026-11-10T18:28:29,,PYTHON_SIMULATOR,Missing value; ,2026-11-10 18:28:29,INVALID
-1,2026-11-10T18:29:29,157.53,PYTHON_SIMULATOR,Duplicate timestamp; ,2026-11-10 18:29:29,INVALID
-1,invalid-timestamp,176.3,PYTHON_SIMULATOR,Invalid timestamp; ,,INVALID
+1,2026-11-10T18:44:53,-10.0,PYTHON_SIMULATOR,Demand outside allowed range; ,2026-11-10 18:44:53,INVALID
+1,2026-11-10T18:46:53,,PYTHON_SIMULATOR,Missing value; ,2026-11-10 18:46:53,INVALID
+1,2026-11-10T18:47:53,179.32,PYTHON_SIMULATOR,Duplicate timestamp; ,2026-11-10 18:47:53,INVALID
+1,invalid-timestamp,173.09,PYTHON_SIMULATOR,Invalid timestamp; ,,INVALID
