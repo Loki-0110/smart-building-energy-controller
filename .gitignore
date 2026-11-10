@@ -1,49 +1,16 @@
-# Java / Maven
-target/
-*.class
-*.jar
-*.war
-
-# IntelliJ
-.idea/
-*.iml
-out/
-
-# VS Code
-.vscode/
-
-# React / Node
-node_modules/
-dist/
-build/
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-venv/
-.env/
-
-# Environment and secrets
-application-local.properties
-.env.*
-!.env.example
-
-# Logs
-*.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Local environment files
 .env
 **/.env
 .env.*
 !.env.example
-
-# Generated Python reports
+**/target/
+*.class
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+*.py[cod]
 data-processing/reports/*.csv
-
-# Maven build output
-backend/target/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

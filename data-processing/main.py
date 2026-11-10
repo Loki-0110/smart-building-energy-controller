@@ -1,67 +1,144 @@
 
-import traceback
+import sys
+
+from services.meter_api import MeterApiClient
+from reports.report_service import save_rejected_readings
 
 from simulator.meter_simulator import generate_readings
 from validation.data_validator import validate_readings
-from services.meter_api import send_readings_to_api
-
-from pathlib import Path
 
 
 def main():
 
-    try:
-        print("========== PYTHON INGESTION STARTED ==========")
+    print(
+        "========== PYTHON INGESTION STARTED ==========",
+        flush=True
+    )
 
-        # Step 1: Generate meter readings.
-        df = generate_readings()
+    api = MeterApiClient()
 
-        # Step 2: Validate generated readings.
-        valid_readings, rejected_readings, report = validate_readings(df)
+    # Step 1: Fetch buildings from Spring Boot
+    buildings = api.get_buildings()
 
-        print("\n========== DATA QUALITY REPORT ==========")
-        print(f"Total readings: {report['total']}")
-        print(f"Valid readings: {report['valid']}")
-        print(f"Rejected readings: {report['rejected']}")
-        print(f"Missing values: {report['missing']}")
-        print(f"Invalid demand: {report['invalid_demand']}")
-        print(f"Invalid timestamps: {report['invalid_timestamp']}")
-        print(f"Duplicate timestamps: {report['duplicates']}")
-        print("==========================================")
+    if not buildings:
+        print(
+            "No buildings found. Add a building first.",
+            flush=True
+        )
+        return
 
-        # Step 3: Save rejected readings.
-        if not rejected_readings.empty:
+    # Step 2: Fetch existing meter readings
+    existing_readings = api.get_meter_readings()
 
-            reports_dir = Path("reports")
-            reports_dir.mkdir(exist_ok=True)
+    # Step 3: Generate new readings
+    generated = []
 
-            rejected_file = reports_dir / "rejected_readings.csv"
+    for building in buildings:
 
-            rejected_readings.to_csv(
-                rejected_file,
-                index=False
+        building_id = building.get("buildingId")
+
+        if not building_id:
+            print(
+                f"Skipping invalid building: {building}",
+                file=sys.stderr
+            )
+            continue
+
+        generated.extend(
+            generate_readings(
+                building,
+                existing_readings
+            )
+        )
+
+    # Step 4: Validate readings
+    valid, rejected = validate_readings(
+        generated,
+        existing_readings
+    )
+
+    # Step 5: Save rejected readings report
+    report_path = save_rejected_readings(rejected)
+
+    print(
+        f"Buildings: {len(buildings)} | "
+        f"Generated: {len(generated)} | "
+        f"Valid: {len(valid)} | "
+        f"Rejected: {len(rejected)}",
+        flush=True
+    )
+
+    print(
+        f"Rejected readings report: {report_path}",
+        flush=True
+    )
+
+    # Step 6: Submit valid readings to Spring Boot
+    successful = 0
+    failed = []
+
+    for reading in valid:
+
+        try:
+
+            api.submit_meter_reading(reading)
+
+            successful += 1
+
+            print(
+                f"Submitted building "
+                f"{reading['buildingId']} at "
+                f"{reading['readingTimestamp']}",
+                flush=True
             )
 
-            print(f"Rejected readings saved to: {rejected_file}")
+        except Exception as exc:
 
-        # Step 4: Submit valid readings to Spring Boot.
-        if not valid_readings.empty:
+            failed.append({
+                "reading": reading,
+                "error": str(exc)
+            })
 
-            successful = send_readings_to_api(valid_readings)
+            print(
+                f"Failed reading "
+                f"{reading['readingTimestamp']}: {exc}",
+                file=sys.stderr,
+                flush=True
+            )
 
-            print(f"Submitted readings: {successful}")
+    # Step 7: Final report
+    print("\n========== INGESTION SUMMARY ==========")
 
-        else:
-            print("No valid readings available for submission.")
+    print(f"Generated readings : {len(generated)}")
+    print(f"Valid readings     : {len(valid)}")
+    print(f"Rejected readings  : {len(rejected)}")
+    print(f"Successful uploads : {successful}")
+    print(f"Failed uploads     : {len(failed)}")
 
-        print("========== PYTHON INGESTION COMPLETED ==========")
+    print("=======================================")
 
-    except Exception as error:
+    if failed:
+        raise RuntimeError(
+            f"{len(failed)} meter reading(s) failed to submit."
+        )
 
-        print(f"PYTHON INGESTION FAILED: {error}")
-        traceback.print_exc()
-        raise
+    print(
+        "========== PYTHON INGESTION COMPLETED ==========",
+        flush=True
+    )
 
 
 if __name__ == "__main__":
-    main()
+
+    try:
+        main()
+
+    except Exception as exc:
+
+        print(
+            f"PYTHON INGESTION FAILED: {exc}",
+            file=sys.stderr,
+            flush=True
+        )
+
+        raise

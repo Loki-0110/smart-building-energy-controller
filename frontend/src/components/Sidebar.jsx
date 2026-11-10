@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Activity, Building2, Cpu, Gauge, LayoutDashboard, Settings, Waves, ClipboardCheck, Zap, X } from 'lucide-react'
+import { Activity, Building2, Cpu, Gauge, LayoutDashboard, Settings, Waves, ClipboardCheck, Zap, X, Users } from 'lucide-react'
 
 const links = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/buildings', label: 'Buildings', icon: Building2 },
   { to: '/equipment', label: 'Equipment', icon: Cpu },
   { to: '/readings', label: 'Meter readings', icon: Gauge },
+  { to: '/occupancy', label: 'Occupancy', icon: Users },
   { to: '/events', label: 'Peak events', icon: Zap },
   { to: '/schedules', label: 'Load approvals', icon: ClipboardCheck },
   { to: '/configuration', label: 'Configuration', icon: Settings }

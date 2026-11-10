@@ -1,113 +1,109 @@
 
-import pandas as pd
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 
-def validate_readings(df):
-
-    # Work on a copy so the original data remains unchanged.
-    data = df.copy()
-
-    # Store validation reasons for every record.
-    data["validation_reason"] = ""
-
-    # 1. Check missing values.
-    missing_mask = (
-        data["reading_timestamp"].isna() |
-        data["demand_kw"].isna()
+def normalize_timestamp(value: str) -> str:
+    """Normalize timestamps to second precision for comparison."""
+    parsed = datetime.fromisoformat(
+        str(value).replace("Z", "+00:00")
     )
 
-    data.loc[missing_mask, "validation_reason"] += "Missing value; "
+    return parsed.replace(
+        tzinfo=None,
+        microsecond=0
+    ).isoformat()
 
-    # 2. Validate demand data type.
-    data["demand_kw"] = pd.to_numeric(
-        data["demand_kw"],
-        errors="coerce"
-    )
 
-    invalid_type_mask = (
-        data["demand_kw"].isna() &
-        ~missing_mask
-    )
+def validate_readings(
+    readings: list[dict[str, Any]],
+    existing_readings: list[dict[str, Any]] | None = None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
 
-    data.loc[invalid_type_mask, "validation_reason"] += (
-        "Invalid demand format; "
-    )
+    valid = []
+    rejected = []
 
-    # 3. Validate demand range.
-    invalid_demand_mask = (
-        data["demand_kw"].notna() &
-        (
-            (data["demand_kw"] <= 0) |
-            (data["demand_kw"] > 500)
-        )
-    )
+    seen_batch = set()
+    existing = set()
 
-    data.loc[invalid_demand_mask, "validation_reason"] += (
-        "Demand outside allowed range; "
-    )
+    for row in existing_readings or []:
+        try:
+            key = (
+                int(row["buildingId"]),
+                normalize_timestamp(row["readingTimestamp"])
+            )
 
-    # 4. Validate timestamps.
-    data["parsed_timestamp"] = pd.to_datetime(
-        data["reading_timestamp"],
-        errors="coerce"
-    )
+            existing.add(key)
 
-    invalid_timestamp_mask = data["parsed_timestamp"].isna()
+        except (KeyError, TypeError, ValueError):
+            continue
 
-    data.loc[invalid_timestamp_mask, "validation_reason"] += (
-        "Invalid timestamp; "
-    )
+    for row in readings:
 
-    # Reject future timestamps.
-    current_time = pd.Timestamp.now()
+        reason = None
 
-    future_mask = (
-        data["parsed_timestamp"].notna() &
-        (data["parsed_timestamp"] > current_time)
-    )
+        try:
+            building_id = int(row["buildingId"])
 
-    data.loc[future_mask, "validation_reason"] += (
-        "Future timestamp; "
-    )
+            timestamp = normalize_timestamp(
+                row["readingTimestamp"]
+            )
 
-    # 5. Check duplicate timestamps.
-    duplicate_mask = (
-        data["parsed_timestamp"].notna() &
-        data["parsed_timestamp"].duplicated(keep="first")
-    )
+            demand = Decimal(str(row["demandKw"]))
 
-    data.loc[duplicate_mask, "validation_reason"] += (
-        "Duplicate timestamp; "
-    )
+            source = str(row.get("sourceName", "")).strip()
 
-    # 6. Separate valid and rejected records.
-    rejected_mask = data["validation_reason"] != ""
+            quality = str(
+                row.get("dataQualityStatus", "")
+            ).strip()
 
-    valid_readings = data.loc[~rejected_mask].copy()
-    rejected_readings = data.loc[rejected_mask].copy()
+            if building_id <= 0:
+                reason = "Building ID must be positive"
 
-    # 7. Assign quality status.
-    valid_readings["data_quality_status"] = "VALID"
-    rejected_readings["data_quality_status"] = "INVALID"
+            elif not demand.is_finite() or demand < 0:
+                reason = "Demand must be finite and non-negative"
 
-    # Remove internal validation columns from valid API records.
-    valid_readings = valid_readings.drop(
-        columns=["validation_reason", "parsed_timestamp"]
-    )
+            elif not source:
+                reason = "Source name is required"
 
-    # 8. Generate quality report.
-    report = {
-        "total": len(data),
-        "missing": int(missing_mask.sum()),
-        "invalid_demand": int(
-            (invalid_type_mask | invalid_demand_mask).sum()
-        ),
-        "invalid_timestamp": int(
-            (invalid_timestamp_mask | future_mask).sum()
-        ),
-        "duplicates": int(duplicate_mask.sum()),
-        "valid": len(valid_readings),
-        "rejected": len(rejected_readings)
-    }
+            elif len(source) > 50:
+                reason = "Source name exceeds 50 characters"
 
-    return valid_readings, rejected_readings, report
+            elif not quality:
+                reason = "Data quality status is required"
+
+            elif len(quality) > 30:
+                reason = "Data quality status exceeds 30 characters"
+
+            key = (building_id, timestamp)
+
+            if reason is None and key in seen_batch:
+                reason = "Duplicate timestamp in generated batch"
+
+            if reason is None and key in existing:
+                reason = "Reading already exists in database"
+
+            if reason is None:
+                seen_batch.add(key)
+                valid.append(row)
+
+            else:
+                rejected.append({
+                    **row,
+                    "rejectionReason": reason
+                })
+
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            InvalidOperation
+        ) as exc:
+
+            rejected.append({
+                **row,
+                "rejectionReason": f"Invalid reading: {exc}"
+            })
+
+    return valid, rejected

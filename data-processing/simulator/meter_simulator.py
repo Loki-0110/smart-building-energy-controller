@@ -1,60 +1,86 @@
 
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-
-import numpy as np
-import pandas as pd
+from decimal import Decimal
+from typing import Any
 
 from config.settings import (
-    BUILDING_ID,
-    SOURCE_NAME,
-    NUMBER_OF_READINGS,
-    READING_INTERVAL_MINUTES
+    READINGS_PER_BUILDING,
+    SIMULATOR_SOURCE_NAME
 )
 
-IST = ZoneInfo("Asia/Kolkata")
 
+def generate_readings(
+    building: dict[str, Any],
+    existing_readings: list[dict[str, Any]],
+    count: int = READINGS_PER_BUILDING
+) -> list[dict[str, Any]]:
 
-def generate_readings():
+    building_id = int(building["buildingId"])
 
-    # Generate timestamps using Indian Standard Time.
-    now = datetime.now(IST).replace(tzinfo=None, microsecond=0)
+    existing_timestamps = []
 
-    timestamps = [
-        now - timedelta(
-            minutes=READING_INTERVAL_MINUTES * (NUMBER_OF_READINGS - i - 1)
+    for reading in existing_readings:
+        try:
+            if int(reading.get("buildingId", -1)) == building_id:
+                timestamp = datetime.fromisoformat(
+                    str(reading["readingTimestamp"]).replace(
+                        "Z", "+00:00"
+                    )
+                ).replace(tzinfo=None)
+
+                existing_timestamps.append(timestamp)
+
+        except (ValueError, TypeError, KeyError):
+            continue
+
+    if existing_timestamps:
+        start_time = max(existing_timestamps) + timedelta(minutes=1)
+    else:
+        start_time = (
+            datetime.now().replace(second=0, microsecond=0)
+            - timedelta(minutes=count - 1)
         )
-        for i in range(NUMBER_OF_READINGS)
-    ]
 
-    # Debug timestamp generation.
-    print("\n========== TIMESTAMP DEBUG ==========")
-    print("Current Python IST:", datetime.now(IST))
-    print("First generated timestamp:", timestamps[0])
-    print("Last generated timestamp:", timestamps[-1])
-    print("=====================================\n")
-
-    # Generate random electricity demand values.
-    demands = np.random.uniform(
-        150, 200, NUMBER_OF_READINGS
-    ).round(2)
+    # Different buildings have different normal demand levels.
+    base_kw = Decimal("110") + Decimal(
+        str((building_id * 13) % 21)
+    )
 
     readings = []
 
-    for timestamp, demand in zip(timestamps, demands):
+    for index in range(count):
+
+        # First 5: Normal demand
+        if index < 5:
+            demand = base_kw + Decimal(str(index * 2))
+
+        # Next 4: Increasing demand
+        elif index < 9:
+            demand = Decimal("145") + Decimal(
+                str((index - 5) * 8)
+            )
+
+        # Remaining: Peak demand
+        else:
+            demand = Decimal("185") + Decimal(
+                str((index - 9) * 6)
+            )
+
+        # Small variation based on building ID
+        demand += Decimal(str(building_id % 5))
+
+        demand = demand.quantize(Decimal("0.01"))
+
+        timestamp = start_time + timedelta(minutes=index)
+
         readings.append({
-            "building_id": BUILDING_ID,
-            "reading_timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "demand_kw": float(demand),
-            "source_name": SOURCE_NAME
+            "buildingId": building_id,
+            "readingTimestamp": timestamp.strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            "demandKw": str(demand),
+            "sourceName": SIMULATOR_SOURCE_NAME,
+            "dataQualityStatus": "VALID"
         })
 
-    # Test data-quality validation rules.
-    readings[2]["demand_kw"] = -10
-    readings[4]["demand_kw"] = None
-    readings[6]["reading_timestamp"] = readings[5]["reading_timestamp"]
-    readings[7]["reading_timestamp"] = "invalid-timestamp"
-
-    print(f"Generated {len(readings)} meter readings.")
-
-    return pd.DataFrame(readings)
+    return readings

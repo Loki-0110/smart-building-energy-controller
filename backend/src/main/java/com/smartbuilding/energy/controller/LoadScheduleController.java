@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/load-schedules")
-@CrossOrigin(origins = "http://localhost:5173")
 public class LoadScheduleController {
 
     private final LoadScheduleRepository loadScheduleRepository;

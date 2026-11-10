@@ -2,15 +2,17 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api',
-  timeout: 15000,
+  timeout: 20000,
   headers: { 'Content-Type': 'application/json' }
 })
 
 export function errorMessage(error) {
-  return error?.response?.data?.message ||
-    error?.response?.data?.error ||
-    error?.message ||
-    'Something went wrong. Check that the backend is running.'
+  const data = error?.response?.data
+  if (typeof data === 'string' && data.trim()) return data
+  if (data?.message) return data.message
+  if (data?.error) return data.error
+  if (error?.code === 'ECONNABORTED') return 'The backend took too long to respond.'
+  if (!error?.response) return 'Cannot reach the backend. Confirm Spring Boot is running at the configured API URL.'
+  return `Request failed (${error.response.status}). Please check the submitted data and backend logs.`
 }
-
 export default api

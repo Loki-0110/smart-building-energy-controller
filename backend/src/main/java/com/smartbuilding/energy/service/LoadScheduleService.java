@@ -28,6 +28,7 @@ public class LoadScheduleService {
         this.overrideLogRepository = overrideLogRepository;
     }
 
+
     @Transactional
     public LoadSchedule approveSchedule(Long scheduleId) {
 
@@ -35,13 +36,14 @@ public class LoadScheduleService {
 
         if (!"PENDING".equalsIgnoreCase(schedule.getScheduleStatus())) {
             throw new IllegalStateException(
-                    "Only PENDING recommendations can be approved.");
+                    "Only PENDING recommendations can be approved. Current status: "
+                            + schedule.getScheduleStatus());
         }
 
         schedule.setScheduleStatus("APPROVED");
-
-        return loadScheduleRepository.save(schedule);
+        return loadScheduleRepository.saveAndFlush(schedule);
     }
+
 
     @Transactional
     public LoadSchedule rejectSchedule(Long scheduleId, String rejectionReason) {

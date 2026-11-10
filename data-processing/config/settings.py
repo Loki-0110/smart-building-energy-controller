@@ -1,9 +1,26 @@
 
-API_URL = "http://localhost:8082/api/meter-readings"
+import os
+from pathlib import Path
 
-BUILDING_ID = 1
-SOURCE_NAME = "PYTHON_SIMULATOR"
+PROJECT_DIR = Path(__file__).resolve().parents[1]
 
-# Generate readings around the current time.
-READING_INTERVAL_MINUTES = 1
-NUMBER_OF_READINGS = 15
+REPORT_DIR = PROJECT_DIR / "reports"
+REJECTED_REPORT = REPORT_DIR / "rejected_readings.csv"
+
+API_BASE_URL = os.getenv(
+    "ENERGY_API_BASE_URL",
+    "http://localhost:8082/api"
+).rstrip("/")
+
+REQUEST_TIMEOUT_SECONDS = int(
+    os.getenv("ENERGY_API_TIMEOUT_SECONDS", "20")
+)
+
+READINGS_PER_BUILDING = int(
+    os.getenv("READINGS_PER_BUILDING", "15")
+)
+
+SIMULATOR_SOURCE_NAME = os.getenv(
+    "SIMULATOR_SOURCE_NAME",
+    "PYTHON_SIMULATOR"
+)

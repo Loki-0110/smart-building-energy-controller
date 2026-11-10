@@ -1,65 +1,109 @@
 
+from typing import Any
+
 import requests
 
-from config.settings import API_URL
+from config.settings import (
+    API_BASE_URL,
+    REQUEST_TIMEOUT_SECONDS
+)
 
 
-def send_readings_to_api(valid_readings):
+class MeterApiClient:
 
-    successful = 0
-    failed = 0
+    def __init__(
+        self,
+        base_url: str = API_BASE_URL,
+        timeout: int = REQUEST_TIMEOUT_SECONDS
+    ):
 
-    # Convert Pandas DataFrame into a list of row dictionaries.
-    records = valid_readings.to_dict(orient="records")
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
 
-    print(f"Preparing to submit {len(records)} valid readings.")
+        self.session = requests.Session()
 
-    for reading in records:
+        self.session.headers.update({
+            "Accept": "application/json"
+        })
 
-        # Read values using Python DataFrame column names.
-        timestamp = reading["reading_timestamp"]
-
-        payload = {
-            "buildingId": int(reading["building_id"]),
-            "readingTimestamp": timestamp,
-            "demandKw": float(reading["demand_kw"]),
-            "sourceName": reading["source_name"],
-            "dataQualityStatus": "VALID"
-        }
+    def _request(
+        self,
+        method: str,
+        path: str,
+        **kwargs: Any
+    ) -> requests.Response:
 
         try:
-            print(f"Submitting reading: {timestamp}")
-
-            response = requests.post(
-                API_URL,
-                json=payload,
-                timeout=15
+            response = self.session.request(
+                method,
+                f"{self.base_url}{path}",
+                timeout=self.timeout,
+                **kwargs
             )
 
             response.raise_for_status()
 
-            successful += 1
+            return response
 
-        except requests.RequestException as error:
+        except requests.RequestException as exc:
 
-            failed += 1
+            details = ""
 
-            print(
-                f"Failed to submit reading {timestamp}: {error}"
+            if exc.response is not None:
+                details = (
+                    f" | API response: "
+                    f"{exc.response.text[:1000]}"
+                )
+
+            raise RuntimeError(
+                f"Backend request {method} {path} failed: "
+                f"{exc}{details}"
+            ) from exc
+
+    def get_buildings(self) -> list[dict[str, Any]]:
+
+        data = self._request(
+            "GET",
+            "/buildings"
+        ).json()
+
+        if not isinstance(data, list):
+            raise RuntimeError(
+                "Buildings API did not return a list"
             )
 
-            if error.response is not None:
-                print("API response:", error.response.text)
+        return data
 
-    print("\n========== API SUBMISSION REPORT ==========")
-    print(f"Total records: {len(records)}")
-    print(f"Successfully submitted: {successful}")
-    print(f"Failed submissions: {failed}")
-    print("===========================================\n")
+    def get_meter_readings(self) -> list[dict[str, Any]]:
 
-    if failed > 0:
-        raise RuntimeError(
-            f"{failed} meter reading(s) could not be submitted."
+        data = self._request(
+            "GET",
+            "/meter-readings"
+        ).json()
+
+        if not isinstance(data, list):
+            raise RuntimeError(
+                "Meter readings API did not return a list"
+            )
+
+        return data
+
+    def submit_meter_reading(
+        self,
+        reading: dict[str, Any]
+    ) -> dict[str, Any] | None:
+
+        response = self._request(
+            "POST",
+            "/meter-readings",
+            json=reading
         )
 
-    return successful
+        if not response.content:
+            return None
+
+        try:
+            return response.json()
+
+        except ValueError:
+            return None
