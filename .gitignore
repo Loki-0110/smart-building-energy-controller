@@ -35,3 +35,15 @@ application-local.properties
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local environment files
+.env
+**/.env
+.env.*
+!.env.example
+
+# Generated Python reports
+data-processing/reports/*.csv
+
+# Maven build output
+backend/target/
