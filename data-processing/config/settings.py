@@ -21,7 +21,7 @@ REQUEST_TIMEOUT_SECONDS = int(
 )
 
 READINGS_PER_BUILDING = int(
-    os.getenv("READINGS_PER_BUILDING", "15")
+    os.getenv("READINGS_PER_BUILDING", "10")
 )
 
 SIMULATOR_SOURCE_NAME = os.getenv(

@@ -11,7 +11,10 @@ export const createEquipment = data => api.post('/equipment', data)
 export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data)
 export const deleteEquipment = id => api.delete(`/equipment/${id}`)
 
-export const getMeterReadings = () => api.get('/meter-readings')
+export const getMeterReadings = (page = 0, size = 10) =>
+  api.get('/meter-readings', {
+    params: { page, size }
+  })
 export const createMeterReading = data => api.post('/meter-readings', data)
 export const updateMeterReading = (id, data) => api.put(`/meter-readings/${id}`, data)
 export const deleteMeterReading = id => api.delete(`/meter-readings/${id}`)
