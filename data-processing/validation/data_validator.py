@@ -1,19 +1,35 @@
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from zoneinfo import ZoneInfo
+
+
+INDIA_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 
 def normalize_timestamp(value: str) -> str:
-    """Normalize timestamps to second precision for comparison."""
+    """
+    Normalize timestamps to UTC for comparison.
+
+    Timezone-naive timestamps are interpreted as IST
+    because the simulator generates IST timestamps.
+    """
+
     parsed = datetime.fromisoformat(
         str(value).replace("Z", "+00:00")
     )
 
-    return parsed.replace(
-        tzinfo=None,
-        microsecond=0
-    ).isoformat()
+    parsed = parsed.replace(microsecond=0)
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(
+            tzinfo=INDIA_TIMEZONE
+        )
+
+    parsed = parsed.astimezone(timezone.utc)
+
+    return parsed.isoformat()
 
 
 def validate_readings(
@@ -27,32 +43,46 @@ def validate_readings(
     seen_batch = set()
     existing = set()
 
+    # Collect existing database records.
     for row in existing_readings or []:
+
         try:
             key = (
                 int(row["buildingId"]),
-                normalize_timestamp(row["readingTimestamp"])
+                normalize_timestamp(
+                    row["readingTimestamp"]
+                )
             )
 
             existing.add(key)
 
-        except (KeyError, TypeError, ValueError):
+        except (
+            KeyError,
+            TypeError,
+            ValueError
+        ):
             continue
 
+    # Validate generated records.
     for row in readings:
 
         reason = None
 
         try:
+
             building_id = int(row["buildingId"])
 
             timestamp = normalize_timestamp(
                 row["readingTimestamp"]
             )
 
-            demand = Decimal(str(row["demandKw"]))
+            demand = Decimal(
+                str(row["demandKw"])
+            )
 
-            source = str(row.get("sourceName", "")).strip()
+            source = str(
+                row.get("sourceName", "")
+            ).strip()
 
             quality = str(
                 row.get("dataQualityStatus", "")
@@ -78,17 +108,21 @@ def validate_readings(
 
             key = (building_id, timestamp)
 
+            # Check duplicate records within this batch.
             if reason is None and key in seen_batch:
                 reason = "Duplicate timestamp in generated batch"
 
+            # Check records already stored in the database.
             if reason is None and key in existing:
                 reason = "Reading already exists in database"
 
             if reason is None:
+
                 seen_batch.add(key)
                 valid.append(row)
 
             else:
+
                 rejected.append({
                     **row,
                     "rejectionReason": reason

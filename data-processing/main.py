@@ -17,7 +17,7 @@ def main():
 
     api = MeterApiClient()
 
-    # Step 1: Fetch buildings from Spring Boot
+    # Step 1: Fetch buildings from Spring Boot.
     buildings = api.get_buildings()
 
     if not buildings:
@@ -27,10 +27,20 @@ def main():
         )
         return
 
-    # Step 2: Fetch existing meter readings
-    existing_readings = api.get_meter_readings()
+    # Step 2: Fetch existing meter readings.
+    existing_readings = api.get_meter_readings() or []
 
-    # Step 3: Generate new readings
+    print(
+        f"Buildings fetched: {len(buildings)}",
+        flush=True
+    )
+
+    print(
+        f"Existing readings fetched: {len(existing_readings)}",
+        flush=True
+    )
+
+    # Step 3: Generate new readings.
     generated = []
 
     for building in buildings:
@@ -40,24 +50,38 @@ def main():
         if not building_id:
             print(
                 f"Skipping invalid building: {building}",
-                file=sys.stderr
+                file=sys.stderr,
+                flush=True
             )
             continue
 
-        generated.extend(
-            generate_readings(
+        try:
+
+            building_readings = generate_readings(
                 building,
                 existing_readings
             )
-        )
 
-    # Step 4: Validate readings
+            generated.extend(building_readings)
+
+        except Exception as exc:
+
+            print(
+                f"Failed to generate readings for "
+                f"building {building_id}: {exc}",
+                file=sys.stderr,
+                flush=True
+            )
+
+            raise
+
+    # Step 4: Validate readings.
     valid, rejected = validate_readings(
         generated,
         existing_readings
     )
 
-    # Step 5: Save rejected readings report
+    # Step 5: Save rejected readings report.
     report_path = save_rejected_readings(rejected)
 
     print(
@@ -73,7 +97,7 @@ def main():
         flush=True
     )
 
-    # Step 6: Submit valid readings to Spring Boot
+    # Step 6: Submit valid readings to Spring Boot.
     successful = 0
     failed = []
 
@@ -88,7 +112,8 @@ def main():
             print(
                 f"Submitted building "
                 f"{reading['buildingId']} at "
-                f"{reading['readingTimestamp']}",
+                f"{reading['readingTimestamp']} | "
+                f"Demand: {reading['demandKw']} kW",
                 flush=True
             )
 
@@ -106,16 +131,41 @@ def main():
                 flush=True
             )
 
-    # Step 7: Final report
-    print("\n========== INGESTION SUMMARY ==========")
+    # Step 7: Final ingestion summary.
+    print(
+        "\n========== INGESTION SUMMARY ==========",
+        flush=True
+    )
 
-    print(f"Generated readings : {len(generated)}")
-    print(f"Valid readings     : {len(valid)}")
-    print(f"Rejected readings  : {len(rejected)}")
-    print(f"Successful uploads : {successful}")
-    print(f"Failed uploads     : {len(failed)}")
+    print(
+        f"Generated readings : {len(generated)}",
+        flush=True
+    )
 
-    print("=======================================")
+    print(
+        f"Valid readings     : {len(valid)}",
+        flush=True
+    )
+
+    print(
+        f"Rejected readings  : {len(rejected)}",
+        flush=True
+    )
+
+    print(
+        f"Successful uploads : {successful}",
+        flush=True
+    )
+
+    print(
+        f"Failed uploads     : {len(failed)}",
+        flush=True
+    )
+
+    print(
+        "=======================================",
+        flush=True
+    )
 
     if failed:
         raise RuntimeError(

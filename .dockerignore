@@ -1,0 +1,31 @@
+
+# Environment variables and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Java / Maven
+**/target/
+**/*.class
+
+# Node / React
+**/node_modules/
+**/dist/
+
+# Python
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+
+# IDE files
+.idea/
+.vscode/
+
+# Generated reports
+data-processing/reports/*.csv
+
+# Git
+.git/
+.gitignore
