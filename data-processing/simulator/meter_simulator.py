@@ -1,12 +1,16 @@
 
+import random
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from config.settings import (
     READINGS_PER_BUILDING,
     SIMULATOR_SOURCE_NAME
 )
+
+INDIA_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 
 def generate_readings(
@@ -17,59 +21,42 @@ def generate_readings(
 
     building_id = int(building["buildingId"])
 
-    existing_timestamps = []
-
-    for reading in existing_readings:
-        try:
-            if int(reading.get("buildingId", -1)) == building_id:
-                timestamp = datetime.fromisoformat(
-                    str(reading["readingTimestamp"]).replace(
-                        "Z", "+00:00"
-                    )
-                ).replace(tzinfo=None)
-
-                existing_timestamps.append(timestamp)
-
-        except (ValueError, TypeError, KeyError):
-            continue
-
-    if existing_timestamps:
-        start_time = max(existing_timestamps) + timedelta(minutes=1)
-    else:
-        start_time = (
-            datetime.now().replace(second=0, microsecond=0)
-            - timedelta(minutes=count - 1)
-        )
+    # Generate readings using current Indian time.
+    start_time = (
+        datetime.now(INDIA_TIMEZONE)
+        .replace(second=0, microsecond=0)
+        - timedelta(minutes=count - 1)
+    )
 
     # Different buildings have different normal demand levels.
     base_kw = Decimal("110") + Decimal(
         str((building_id * 13) % 21)
     )
 
+    current_demand = float(base_kw)
     readings = []
 
     for index in range(count):
 
-        # First 5: Normal demand
-        if index < 5:
-            demand = base_kw + Decimal(str(index * 2))
+        # Normal demand fluctuations.
+        change = random.uniform(-8, 8)
 
-        # Next 4: Increasing demand
-        elif index < 9:
-            demand = Decimal("145") + Decimal(
-                str((index - 5) * 8)
-            )
+        # Occasionally simulate a sudden demand increase.
+        if random.random() < 0.10:
+            change += random.uniform(10, 25)
 
-        # Remaining: Peak demand
-        else:
-            demand = Decimal("185") + Decimal(
-                str((index - 9) * 6)
-            )
+        # Occasionally simulate reduced electricity consumption.
+        if random.random() < 0.15:
+            change -= random.uniform(10, 20)
 
-        # Small variation based on building ID
-        demand += Decimal(str(building_id % 5))
+        current_demand += change
 
-        demand = demand.quantize(Decimal("0.01"))
+        # Keep demand within the configured simulation range.
+        current_demand = max(90, min(current_demand, 220))
+
+        demand = Decimal(str(current_demand)).quantize(
+            Decimal("0.01")
+        )
 
         timestamp = start_time + timedelta(minutes=index)
 

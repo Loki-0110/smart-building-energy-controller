@@ -1,1 +1,5 @@
 requests==2.34.2
+mysql-connector-python
+snowflake-connector-python
+python-dotenv
+tzdata

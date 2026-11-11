@@ -1,1 +1,12 @@
 buildingId,readingTimestamp,demandKw,sourceName,dataQualityStatus,rejectionReason
+1,2026-11-11T09:53:00,118.14,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:54:00,119.47,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:55:00,112.49,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:56:00,110.77,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:57:00,116.76,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:58:00,109.21,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T09:59:00,96.66,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T10:00:00,118.11,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T10:01:00,113.53,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T10:02:00,107.55,PYTHON_SIMULATOR,VALID,Reading already exists in database
+1,2026-11-11T10:03:00,118.51,PYTHON_SIMULATOR,VALID,Reading already exists in database
