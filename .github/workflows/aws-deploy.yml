@@ -17,9 +17,35 @@ on:
 permissions:
   contents: read
 
+# Prevent overlapping deployments
+concurrency:
+  group: smart-building-production
+  cancel-in-progress: false
+
 jobs:
+
+  # Run all three reusable CI workflows
+  backend-ci:
+    name: Backend CI
+    uses: ./.github/workflows/backend-ci.yml
+
+  frontend-ci:
+    name: Frontend CI
+    uses: ./.github/workflows/frontend-ci.yml
+
+  python-ci:
+    name: Python CI
+    uses: ./.github/workflows/python-ci.yml
+
+  # Build Docker images after all CI checks pass
   build-and-push:
     name: Build and Push Docker Images
+
+    needs:
+      - backend-ci
+      - frontend-ci
+      - python-ci
+
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +67,9 @@ jobs:
           context: .
           file: ./backend/Dockerfile
           push: true
-          tags: loki1100/smart-building-backend:latest
+          tags: |
+            loki1100/smart-building-backend:latest
+            loki1100/smart-building-backend:${{ github.sha }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -49,11 +77,17 @@ jobs:
           context: .
           file: ./frontend/Dockerfile
           push: true
-          tags: loki1100/smart-building-frontend:aws
+          tags: |
+            loki1100/smart-building-frontend:aws
+            loki1100/smart-building-frontend:${{ github.sha }}
 
+  # Deploy only after all CI checks and Docker builds succeed
   deploy:
     name: Deploy to AWS EC2
-    needs: build-and-push
+
+    needs:
+      - build-and-push
+
     runs-on: [self-hosted, Linux, X64, smart-building]
 
     steps:
