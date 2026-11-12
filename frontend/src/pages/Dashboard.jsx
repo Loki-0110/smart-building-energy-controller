@@ -218,9 +218,7 @@ export default function Dashboard() {
 
           <h2>Energy overview</h2>
 
-          <p className="muted">
-            Operational snapshot from the connected Spring Boot APIs.
-          </p>
+          
         </div>
 
         <button
