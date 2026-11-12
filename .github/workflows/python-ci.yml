@@ -2,6 +2,8 @@
 name: Python CI
 
 on:
+  workflow_call:
+
   push:
     branches:
       - main
@@ -45,4 +47,3 @@ jobs:
       - name: Check Python syntax
         run: |
           python -m compileall -q main.py config services simulator validation
-
