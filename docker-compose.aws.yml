@@ -1,0 +1,76 @@
+services:
+
+  # 1. MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: smart-building-mysql
+    restart: unless-stopped
+    command: --lower_case_table_names=1
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smart_building_db}
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h localhost -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  # 2. Spring Boot + Python Backend
+  backend:
+    image: loki1100/smart-building-backend:latest
+    container_name: smart-building-backend
+    restart: unless-stopped
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    env_file:
+      - ./data-processing/.env
+
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+      DB_URL: ${DB_URL:?DB_URL is required}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smart_building_db}
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+
+      ENERGY_API_BASE_URL: http://localhost:8082/api
+
+    expose:
+      - "8082"
+
+
+  # 3. React Frontend with Nginx reverse proxy
+  frontend:
+    image: loki1100/smart-building-frontend:aws
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+
+    container_name: smart-building-frontend
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    ports:
+      - "80:80"
+
+
+volumes:
+  mysql_data:
