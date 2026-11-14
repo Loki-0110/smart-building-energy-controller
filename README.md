@@ -1,68 +1,296 @@
 # Smart Building Energy Peak-Shaving Controller
 
-Combined project bundle: Spring Boot backend, React frontend, and Python meter-reading simulator. This is a simulation and operator-recommendation system only; it does not switch real equipment or guarantee actual energy savings.
+A simulation-based smart building energy management system designed to monitor electricity consumption, identify peak-demand events, and recommend load-reduction schedules while respecting occupancy, equipment priority, and operational constraints.
+
+> **Project Scope:** This is a simulation and operator-recommendation system only. It does not control real equipment or guarantee actual energy savings.
+
+## Technology Stack
+
+- **Backend:** Java 21, Spring Boot, Maven
+- **Frontend:** React, Vite, Node.js
+- **Data Processing:** Python 3.12
+- **Database:** MySQL 8
+- **Analytics:** Snowflake, Power BI
+- **Infrastructure:** Docker, AWS EC2, Amazon S3
+- **CI/CD:** GitHub Actions
 
 ## Requirements
-- Windows 10/11, Java 21, Maven 3.9+, Node.js 20+, Python 3.12+, MySQL 8+
 
-## 1. Database
-Use your existing `smart_building_db` database and schema. The backend uses Hibernate `ddl-auto=validate`; it will not create or delete tables automatically. Do not run destructive reset commands against a database containing data.
+Ensure the following software is installed:
 
-Set the MySQL credentials in PowerShell before starting the backend:
+- Windows 10/11
+- Java 21
+- Maven 3.9+
+- Node.js 20+
+- Python 3.12+
+- MySQL 8+
+
+---
+
+## 1. Database Setup
+
+Use your existing `smart_building_db` database and schema.
+
+The backend uses:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+Hibernate validates the existing database schema. It will not automatically create or delete tables.
+
+**Important:** Do not run destructive reset commands against a database containing existing project data.
+
+### Configure MySQL credentials
+
+Open PowerShell and set the database credentials:
+
 ```powershell
 $env:DB_USERNAME="root"
 $env:DB_PASSWORD="your_mysql_password"
 ```
-Default connection: `jdbc:mysql://localhost:3306/smart_building_db`. Override with `DB_URL` if needed.
 
-If your database has not had the peak lifecycle update, review `database/PEAK_LIFECYCLE_MIGRATION.sql` and execute it once after checking the IDs referenced by the script. Do not blindly run sample-ID updates against different data.
+Default database connection:
 
-## 2. Start backend
+```text
+jdbc:mysql://localhost:3306/smart_building_db
+```
+
+If required, override the connection URL using the `DB_URL` environment variable.
+
+### Peak Lifecycle Migration
+
+If your database has not received the peak lifecycle update:
+
+1. Open `database/PEAK_LIFECYCLE_MIGRATION.sql`.
+2. Review the SQL statements.
+3. Verify the IDs referenced in the script against your existing database.
+4. Execute the migration once after confirming the references.
+
+Do not blindly execute sample-ID updates against different database records.
+
+---
+
+## 2. Start the Spring Boot Backend
+
+Open the first PowerShell terminal.
+
+Navigate to the backend directory:
+
 ```powershell
 cd backend
+```
+
+Start the application:
+
+```powershell
 mvn spring-boot:run
 ```
-API: `http://localhost:8082/api`. CORS defaults to `http://localhost:5173`; override with `FRONTEND_ORIGIN` if needed.
 
-## 3. Start frontend (second terminal)
+Backend API base URL:
+
+```text
+http://localhost:8082/api
+```
+
+The default CORS origin is:
+
+```text
+http://localhost:5173
+```
+
+To change the frontend origin, configure the `FRONTEND_ORIGIN` environment variable.
+
+---
+
+## 3. Start the React Frontend
+
+Open a second PowerShell terminal.
+
+Navigate to the frontend directory:
+
 ```powershell
 cd frontend
+```
+
+Install dependencies:
+
+```powershell
 npm ci
+```
+
+Start the development server:
+
+```powershell
 npm run dev
 ```
-Open `http://localhost:5173`. Optional API override: copy `.env.example` to `.env` and set `VITE_API_BASE_URL=http://localhost:8082/api`.
 
-## 4. Start Python ingestion (third terminal)
+Open the application:
+
+```text
+http://localhost:5173
+```
+
+### Optional API Configuration
+
+Copy `.env.example` to `.env` and configure the backend API URL:
+
+```env
+VITE_API_BASE_URL=http://localhost:8082/api
+```
+
+---
+
+## 4. Python Meter-Reading Ingestion
+
+Open a third PowerShell terminal.
+
+Navigate to the data-processing directory:
+
 ```powershell
 cd data-processing
+```
+
+Create a Python virtual environment:
+
+```powershell
 py -3.12 -m venv .venv
+```
+
+Activate the environment:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
+```
+
+Install the required dependencies:
+
+```powershell
 python -m pip install -r requirements.txt
+```
+
+Run the Python simulator:
+
+```powershell
 python main.py
 ```
-The scheduler starts 30 seconds after backend startup and runs every five minutes. It invokes the Python script from `data-processing`. To pause it for manual API work, set `energy.scheduler.enabled=false` in `backend/src/main/resources/application.properties` and restart the backend.
 
-## Main workflow
-1. Create a building.
-2. Add equipment. Critical and non-controllable equipment is protected.
-3. Add occupancy windows. Unknown occupancy is treated conservatively and blocks load reduction.
-4. Add an active peak configuration and threshold.
-5. Start Python ingestion or add meter readings manually.
-6. Run peak detection from Peak Events or wait for the scheduler.
-7. Review recommendations in Load Schedule Approvals. Only `PENDING` recommendations can be approved/rejected. Overrides require an active ADMIN/OPERATOR user ID in `APP_USERS`.
+### Scheduler Configuration
 
-## Fixes included
-- Meter-reading ingestion is idempotent on `(building_id, reading_timestamp)`. Re-sending an existing reading returns the stored row instead of failing the whole batch with MySQL error 1062.
-- Global API error handling logs unexpected exceptions; validation returns 400, missing resources 404, and invalid state/database conflicts 409.
-- Approval uses `saveAndFlush` and invalid approval state now returns a conflict response with the current status.
-- Frontend table keys are unique; successful CRUD, peak-detection, and schedule actions retain their success notices after refresh.
-- Python simulator calculates timestamps after the latest stored reading for each building, preventing overlapping rolling batches.
+The backend scheduler:
 
-## Important limitations
-- Approval/rejection/override are operator workflow records only; no physical equipment is controlled.
-- `EXPECTED_REDUCTION_KW` is a simulated estimate, not measured savings.
-- The user-ID override check is not authentication. Add Spring Security and authorization before public deployment.
-- Backend schema compatibility depends on the existing MySQL database matching the entity mappings.
+- Starts 30 seconds after backend startup.
+- Runs every five minutes.
+- Invokes the Python script from the `data-processing` directory.
 
-## Verification status
-Python syntax validation passed. A fresh Maven build could not be run because Maven is not installed in this environment. `npm ci` could not complete because the npm registry dependency download timed out, so a fresh Vite production build could not be verified here. Run the setup commands on Windows and share any remaining build/runtime error for targeted debugging.
+To pause the scheduler during manual API testing, update the following property in:
+
+`backend/src/main/resources/application.properties`
+
+```properties
+energy.scheduler.enabled=false
+```
+
+Restart the backend after changing the property.
+
+---
+
+## 5. Main Application Workflow
+
+Follow this sequence to use the application:
+
+1. **Create a Building:** Add a building to the system.
+2. **Add Equipment:** Register equipment with its priority and controllability details.
+3. **Configure Occupancy:** Add occupancy windows for the building.
+4. **Configure Peak Threshold:** Create an active peak configuration and define the demand threshold.
+5. **Ingest Meter Readings:** Start Python ingestion or add meter readings manually through the API.
+6. **Detect Peak Events:** Run peak detection from the Peak Events section or wait for the scheduler.
+7. **Review Load Recommendations:** Open Load Schedule Approvals to review generated recommendations.
+8. **Approve or Reject:** Only recommendations with `PENDING` status can be approved or rejected.
+9. **Record Overrides:** Overrides require an active ADMIN/OPERATOR user ID available in `APP_USERS`.
+
+### Equipment and Occupancy Constraints
+
+- Critical equipment is protected.
+- Non-controllable equipment is protected.
+- Unknown occupancy is treated conservatively and blocks load reduction.
+- Recommendations are generated within the configured operational constraints.
+
+---
+
+## 6. Important Fixes and Improvements
+
+### Meter Reading Ingestion
+
+- Ingestion is idempotent using `(building_id, reading_timestamp)`.
+- Re-sending an existing reading returns the stored record.
+- Duplicate readings no longer cause the entire batch to fail with MySQL error `1062`.
+
+### Backend Error Handling
+
+- Global API error handling logs unexpected exceptions.
+- Validation errors return HTTP `400`.
+- Missing resources return HTTP `404`.
+- Invalid states and database conflicts return HTTP `409`.
+
+### Approval Workflow
+
+- Approval operations use `saveAndFlush`.
+- Invalid approval states return a conflict response.
+- The response includes the current recommendation status.
+
+### Frontend Improvements
+
+- Table keys are unique.
+- Successful CRUD operations retain their success notices after refresh.
+- Peak-detection and schedule actions retain their success notices after refresh.
+
+### Python Simulator
+
+- New meter-reading timestamps are calculated after the latest stored reading for each building.
+- This prevents overlapping rolling batches.
+
+---
+
+## 7. Important Limitations
+
+1. **No Physical Equipment Control:** Approval, rejection, and override operations are operator workflow records only. No physical equipment is switched on or off.
+2. **Simulated Energy Reduction:** `EXPECTED_REDUCTION_KW` represents a simulated estimate, not measured energy savings.
+3. **Authentication:** The user-ID override check is not authentication. Spring Security and proper authorization must be implemented before public deployment.
+4. **Database Compatibility:** Backend startup depends on the existing MySQL database matching the application's entity mappings.
+5. **Simulation Scope:** Results are intended for demonstration, analysis, and operator recommendations.
+
+---
+
+## 8. Verification Status
+
+The application components were verified during local development.
+
+| Component | Verification |
+|---|---|
+| Python meter-reading simulator | Verified |
+| Spring Boot backend | Verified |
+| React frontend | Verified |
+| MySQL database connectivity | Verified |
+| Backend API integration | Verified |
+| Frontend and backend integration | Verified |
+| Application workflow | Verified |
+
+
+
+### Verification Notes
+
+- Python syntax validation passed.
+- A fresh Maven build could not be completed because Maven was not installed in the verification environment.
+- `npm ci` could not complete because the npm registry dependency download timed out.
+- Therefore, a fresh Vite production build could not be verified in that environment.
+
+Run the setup commands on Windows with the required software installed. If any build or runtime error occurs, review the terminal output and resolve the issue before deployment.
+
+---
+
+## 9. Project Disclaimer
+
+This project demonstrates a smart building energy peak-shaving workflow using simulated meter readings, peak-demand detection, equipment constraints, and operator recommendations.
+
+It is intended as an educational and demonstration project. It does not provide real-time physical equipment control or guarantee actual electricity cost or energy savings.
