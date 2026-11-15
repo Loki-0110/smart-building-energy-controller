@@ -1,5 +1,10 @@
 # Smart Building Energy Peak-Shaving Controller
 
+**Live Application:** 
+http://13.63.129.232
+
+**Application Status:** Deployed on AWS EC2
+
 A simulation-based smart building energy management system designed to monitor electricity consumption, identify peak-demand events, and recommend load-reduction schedules while respecting occupancy, equipment priority, and operational constraints.
 
 > **Project Scope:** This is a simulation and operator-recommendation system only. It does not control real equipment or guarantee actual energy savings.
@@ -275,8 +280,6 @@ The application components were verified during local development.
 | Backend API integration | Verified |
 | Frontend and backend integration | Verified |
 | Application workflow | Verified |
-
-
 
 ### Verification Notes
 
